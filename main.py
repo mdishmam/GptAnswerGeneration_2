@@ -79,6 +79,8 @@ def main():
     # Bring paa
     number_of_questions = 20
     category = input("Enter category: ")
+    temperature = float(input("Enter Gpt3's temperature: "))
+    amazon_choise = input("Show amazon product? [default is 'yes', press anything to not show]")
     keywords_file = open('keywords.txt', 'r')
     keywords_all = keywords_file.readlines()
     keywords_file.close()
@@ -95,19 +97,25 @@ def main():
             questions, answers, time_to_bring = search_with_keyword(keyword, limit=number_of_questions)
             #    intro got for this keyword
             fet_image_id, image1_link, image2_link = image_downloader(keyword)
-            intro = write_intro(keyword)
-            tmp_html = html_template_1.replace('##keyword_main##', keyword)
+            intro = write_intro(keyword, temp=temperature)
+            tmp_html = html_template_1.replace('##keyword_main##', '')
             tmp_html = tmp_html.replace('##intro_main##', intro)
+            # get product
+            if amazon_choise == '':
+                iframe = get_product(keyword_)
+            tmp_html += f"<br>{iframe}"
             with open(f'tmps\\{keyword_}\\{intro_file}', 'w') as fl:
                 fl.write(tmp_html)
+
             intro_html = tmp_html
             #     first 3
             tmp_frst3 = ''
             for index_1, i in enumerate(range(0, 6, 2)):
                 h2or3 = 'h3'
+                question = questions[i].replace('?','')
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
-                question = questions[i]
+                    question = questions[i]
                 answer = rewrite_text(answers[i]) + '<br><br>' + rewrite_text(answers[i + 1])
 
                 tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
@@ -115,21 +123,21 @@ def main():
                 tmp_html = tmp_html.replace('##answer##', answer)
 
                 tmp_frst3 += tmp_html
-            with open(f'tmps\\{keyword_}\\{first_3_qa}', 'w') as fl:
+            with open(f'tmps\\{keyword_}\\{first_3_qa}', 'w', encoding='utf-8') as fl:
                 fl.write(tmp_frst3)
 
             # get video
             video_link = video_get(keyword)
-            # get product
-            iframe = get_product(keyword_)
+
             #     second 2
             tmp_snd2 = ''
             for index_1, i in enumerate(range(6, 10, 2)):
                 h2or3 = 'h3'
+                question = questions[i].replace('?', '')
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
-                question = questions[i]
-                answer = rewrite_text(answers[i]) + '<br><br>' + rewrite_text(answers[i + 1])
+                    question = questions[i]
+                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
 
                 tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
                 tmp_html = tmp_html.replace('##keyword##', question)
@@ -137,42 +145,49 @@ def main():
 
                 tmp_snd2 += tmp_html
             tmp_snd2 += f"<br>{video_link}"
-            tmp_snd2 += f"<br>{iframe}"
-            with open(f'tmps\\{keyword_}\\{second_2_qa}', 'w') as fl:
+
+            with open(f'tmps\\{keyword_}\\{second_2_qa}', 'w', encoding='utf-8') as fl:
                 fl.write(tmp_snd2)
 
             #     third 3
             tmp_thrd3 = ''
             for index_1, i in enumerate(range(10, 16, 2)):
                 h2or3 = 'h3'
+                question = questions[i].replace('?', '')
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
-                question = questions[i]
-                answer = rewrite_text(answers[i]) + '<br><br>' + rewrite_text(answers[i + 1])
+                    question = questions[i]
+                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
 
                 tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
                 tmp_html = tmp_html.replace('##keyword##', question)
                 tmp_html = tmp_html.replace('##answer##', answer)
 
                 tmp_thrd3 += tmp_html
-            with open(f'tmps\\{keyword_}\\{third_3_qa}', 'w') as fl:
+            with open(f'tmps\\{keyword_}\\{third_3_qa}', 'w', encoding='utf-8') as fl:
                 fl.write(tmp_thrd3)
 
             #     last 2
             tmp_lst2 = ''
             for index_1, i in enumerate(range(16, 20, 2)):
-                h2or3 = 'h3'
-                if index_1 % 2 == 0:
-                    h2or3 = 'h2'
-                question = questions[i]
-                answer = rewrite_text(answers[i]) + '<br><br>' + rewrite_text(answers[i + 1])
-
-                tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
-                tmp_html = tmp_html.replace('##keyword##', question)
-                tmp_html = tmp_html.replace('##answer##', answer)
+                # h2or3 = 'h3'
+                question = questions[i].replace('?', '')
+                # if index_1 % 2 == 0:
+                #     h2or3 = 'h2'
+                #     question = questions[i]
+                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
+                if i == 18:
+                    tmp_html = html_q_a_template.replace('##h2or3##', 'h2')
+                    conclusions = ['Conclusion' , 'Warp Up' , 'Final Words']
+                    tmp_html = tmp_html.replace('##keyword##', random.choice(conclusions))
+                    tmp_html = tmp_html.replace('##answer##', answer)
+                else:
+                    tmp_html = html_q_a_template.replace('##h2or3##', 'h3')
+                    tmp_html = tmp_html.replace('##keyword##', question)
+                    tmp_html = tmp_html.replace('##answer##', answer)
 
                 tmp_lst2 += tmp_html
-            with open(f'tmps\\{keyword_}\\{last_2_qa}', 'w') as fl:
+            with open(f'tmps\\{keyword_}\\{last_2_qa}', 'w', encoding='utf-8') as fl:
                 fl.write(tmp_lst2)
 
             all_post = intro_html + tmp_frst3
@@ -182,7 +197,8 @@ def main():
             all_post += tmp_lst2
 
             post_in_wp(title=keyword_, body=all_post, thumbnail=fet_image_id, category=category)
-        except:
+        except Exception as e:
+            print(f'Error: {e}')
             continue
 
 

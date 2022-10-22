@@ -10,12 +10,12 @@ key = keys[0].strip()
 
 openai.api_key = key
 
-def write_intro_1_text(keyword):
+def write_intro_1_text(keyword,temp=0.7):
     prompt = f"write a introduction for the following topic: \"{keyword}\"\n\n"
     response = openai.Completion.create(
         model="text-davinci-002",
         prompt=prompt,
-        temperature=0.7,
+        temperature=temp,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
@@ -26,12 +26,12 @@ def write_intro_1_text(keyword):
 
     return intro_1
 
-def write_intro_2_text(keyword):
+def write_intro_2_text(keyword,temp=0.7):
     prompt = f"write exact ans for the following topic: \"{keyword}\"\n\n"
     response = openai.Completion.create(
         model="text-davinci-002",
         prompt=prompt,
-        temperature=0.7,
+        temperature=temp,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
@@ -42,18 +42,18 @@ def write_intro_2_text(keyword):
 
     return intro_2
 
-def write_intro(keyword):
-    intro_1 = write_intro_1_text(keyword)
-    intro_2 = write_intro_2_text(keyword)
+def write_intro(keyword, temp= 0.7):
+    intro_1 = write_intro_1_text(keyword, temp)
+    intro_2 = write_intro_2_text(keyword, temp)
     intro = intro_1 + '<br><br>' + intro_2
     return intro
 
-def rewrite_text(text):
+def rewrite_text(text, temp=0.7):
     prompt = f"write a note on following topic:\n{text}\n\n"
     response = openai.Completion.create(
         model="text-davinci-002",
         prompt=prompt,
-        temperature=0.7,
+        temperature=temp,
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
