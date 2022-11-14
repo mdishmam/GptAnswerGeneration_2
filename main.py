@@ -1,10 +1,13 @@
+import glob
+import shutil
 import os.path
 import random
+import sys
 
 import requests
 
 from paa_selenium import search_with_keyword
-from gpt_modules import write_intro, rewrite_text
+from gpt_modules import write_intro, rewrite_text, write_conclusion
 from wp_module import upload_image, post_in_wp
 from amazon_product import get_product
 
@@ -79,16 +82,52 @@ def main():
     # Bring paa
     number_of_questions = 20
     category = input("Enter category: ")
+    number_of_heads = int(input("Enter number of headings [Must be larger than 8]: "))
+    while number_of_heads <= 8:
+        number_of_heads = int(input("Must be larger than 8. \nEnter number of headings: "))
+    number_of_questions = number_of_heads * 2
     temperature = float(input("Enter Gpt3's temperature: "))
-    amazon_choise = input("Show amazon product? [default is 'yes', press anything to not show]")
+    amazon_choise = input("Show amazon product? [default is 'yes', press anything to not show] : ")
+
+    re_run_choice = input("If failed re-run automatically? [default is 'yes', press anything to not show] : ")
+
     keywords_file = open('keywords.txt', 'r')
     keywords_all = keywords_file.readlines()
     keywords_file.close()
+
+    run_main_module(keywords_all, number_of_questions, temperature, amazon_choise, category)
+
+    with open(f'logs\\keywords_unsuccessful.txt', 'r', encoding='utf-8') as fl:
+        keywords_all = fl.read()
+
+    while keywords_all.strip() != '':
+        failed_keyword = keywords_all.strip().split("\n")
+        if re_run_choice != '':
+            breaking_param = input(f'There are {len(failed_keyword)} failed keyword(s). Want to re-run for these?[default is \'yes\', press anything to not show]')
+            if breaking_param.strip() != '':
+                break
+        keywords_all = failed_keyword
+        run_main_module(keywords_all, number_of_questions, temperature, amazon_choise, category)
+
+        with open(f'logs\\keywords_unsuccessful.txt', 'r', encoding='utf-8') as fl:
+            keywords_all = fl.read()
+
+
+def run_main_module(keywords_all, number_of_questions, temperature, amazon_choise, category):
+    # keywords_file = open('keywords.txt', 'r')
+    # keywords_all = keywords_file.readlines()
+    # keywords_file.close()
     keyword_filter = lambda keyword: keyword.strip() if keyword.strip()[-1] == '?' else keyword.strip() + '?'
     keywords_all = list(map(keyword_filter, keywords_all))
     if '' in keywords_all:
         keywords_all.remove('')
     print(keywords_all)
+
+    with open(f'logs\\keywords_unsuccessful.txt', 'w', encoding='utf-8') as fl:
+        fl.write('')
+    with open(f'logs\\error_log.txt', 'w', encoding='utf-8') as fl:
+        fl.write('')
+
     for index, keyword in enumerate(keywords_all):
         try:
             keyword_ = keyword.replace('?', '')
@@ -103,7 +142,7 @@ def main():
             # get product
             if amazon_choise == '':
                 iframe = get_product(keyword_)
-            tmp_html += f"<br>{iframe}"
+                tmp_html += f"<br>{iframe}"
             with open(f'tmps\\{keyword_}\\{intro_file}', 'w') as fl:
                 fl.write(tmp_html)
 
@@ -112,7 +151,7 @@ def main():
             tmp_frst3 = ''
             for index_1, i in enumerate(range(0, 6, 2)):
                 h2or3 = 'h3'
-                question = questions[i].replace('?','')
+                question = questions[i].replace('?', '')
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
                     question = questions[i]
@@ -137,7 +176,8 @@ def main():
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
                     question = questions[i]
-                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
+                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1],
+                                                                                                temp=temperature)
 
                 tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
                 tmp_html = tmp_html.replace('##keyword##', question)
@@ -157,7 +197,8 @@ def main():
                 if index_1 % 2 == 0:
                     h2or3 = 'h2'
                     question = questions[i]
-                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
+                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1],
+                                                                                                temp=temperature)
 
                 tmp_html = html_q_a_template.replace('##h2or3##', h2or3)
                 tmp_html = tmp_html.replace('##keyword##', question)
@@ -169,19 +210,22 @@ def main():
 
             #     last 2
             tmp_lst2 = ''
-            for index_1, i in enumerate(range(16, 20, 2)):
+            for index_1, i in enumerate(range(16, number_of_questions, 2)):
                 # h2or3 = 'h3'
                 question = questions[i].replace('?', '')
                 # if index_1 % 2 == 0:
                 #     h2or3 = 'h2'
                 #     question = questions[i]
-                answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
-                if i == 18:
+                # answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1], temp=temperature)
+                if i == number_of_questions - 2:
+                    answer = write_conclusion(keyword_, temp=temperature)
                     tmp_html = html_q_a_template.replace('##h2or3##', 'h2')
-                    conclusions = ['Conclusion' , 'Warp Up' , 'Final Words']
+                    conclusions = ['Conclusion', 'Warp Up', 'Final Words']
                     tmp_html = tmp_html.replace('##keyword##', random.choice(conclusions))
                     tmp_html = tmp_html.replace('##answer##', answer)
                 else:
+                    answer = rewrite_text(answers[i], temp=temperature) + '<br><br>' + rewrite_text(answers[i + 1],
+                                                                                                    temp=temperature)
                     tmp_html = html_q_a_template.replace('##h2or3##', 'h3')
                     tmp_html = tmp_html.replace('##keyword##', question)
                     tmp_html = tmp_html.replace('##answer##', answer)
@@ -196,11 +240,30 @@ def main():
             all_post += f'<img src="{image2_link}" alt="{keyword_}_2">'
             all_post += tmp_lst2
 
-            post_in_wp(title=keyword_, body=all_post, thumbnail=fet_image_id, category=category)
+            post_in_wp(title=keyword.capitalize(), body=all_post, thumbnail=fet_image_id, category=category)
         except Exception as e:
             print(f'Error: {e}')
+            with open(f'logs\\keywords_unsuccessful.txt', 'a', encoding='utf-8') as fl:
+                fl.write(keyword_ + '\n')
+
+            with open(f'logs\\error_log.txt', 'a', encoding='utf-8') as fl:
+                txt = '#' * 50
+                txt = txt + '\n' + keyword_ + '\n\n'
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                txt = txt + str(e) + '\n'
+                txt = txt + f'{exc_type},\n {fname},\n {exc_tb.tb_lineno}' + '\n\n\n'
+                fl.write(txt)
             continue
 
 
 if __name__ == '__main__':
     main()
+    input('All process finished. Press enter to exit.')
+
+    files = glob.glob('tmps/*')
+    for f in files:
+        shutil.rmtree(f)
+
+
+

@@ -60,7 +60,46 @@ def rewrite_text(text, temp=0.7):
         presence_penalty=0
     )
 
-    print('\t\trewite done.\n\n')
+    print('\t\tBuilding article.\n\n')
     output = response.choices[0].text
 
     return output
+
+
+def write_conclusion_1_text(keyword,temp=0.7):
+    prompt = f"write a conclusion for the following topic: \"{keyword}\"\n\n"
+    response = openai.Completion.create(
+        model="text-davinci-002",
+        prompt=prompt,
+        temperature=temp,
+        max_tokens=256,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    print('\t\tintro1 done.\n\n')
+    intro_1 = response.choices[0].text
+
+    return intro_1
+
+def write_conclusion_2_text(keyword,temp=0.7):
+    prompt = f"write exact ans for the following topic: \"{keyword}\"\n\n"
+    response = openai.Completion.create(
+        model="text-davinci-002",
+        prompt=prompt,
+        temperature=temp,
+        max_tokens=256,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    print('\t\tintro2 done.\n\n')
+    intro_2 = response.choices[0].text
+
+    return intro_2
+
+def write_conclusion(keyword, temp= 0.7):
+    conclusion_1 = write_conclusion_1_text(keyword, temp)
+    conclusion_2 = write_conclusion_2_text(keyword, temp)
+    conclusion = conclusion_2 + '<br><br>' + conclusion_1
+    return conclusion
